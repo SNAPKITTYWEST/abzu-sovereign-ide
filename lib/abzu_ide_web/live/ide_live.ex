@@ -300,7 +300,7 @@ defmodule AbzuIdeWeb.IdeLive do
 
           <div class="bob-footer">
             <span class="bob-backend">
-              BACKEND: <%= System.get_env("BOB_ENDPOINT") && "IBM GAMMA (vLLM)" || "ANTHROPIC CLAUDE HAIKU" %>
+              BACKEND: IBM GAMMA (vLLM) · BOB_ENDPOINT=<%= System.get_env("BOB_ENDPOINT") && "SET" || "NOT SET" %>
             </span>
           </div>
         </aside>
