@@ -1,0 +1,26 @@
+{
+  "stone": 3,
+  "model": "claude-sonnet-4-6",
+  "entity": "SNAPKITTY-SOVEREIGN-OS:AHMAD-ALI-PARR:2026",
+  "project": "ABZU-SOVEREIGN-BEAM-IDE",
+  "components": [
+    "AbzuIde.WormChain",
+    "AbzuIde.BeamRunner",
+    "AbzuIde.BobAgent",
+    "AbzuIde.SovereignRegistry",
+    "AbzuIdeWeb.IdeLive",
+    "MonacoEditor hook",
+    "IBM Gamma vLLM interface"
+  ],
+  "chain_genesis": "b1ada656-worm-1e",
+  "ts": 1781850116174,
+  "seal": "29b86e67-worm-162",
+  "interfaces": {
+    "run": "POST /run -> {:ok, result} | {:error, msg}",
+    "bob": "POST /bob -> {:ok, completion}",
+    "worm": "GET  /worm -> [sealed entries]",
+    "registry": "GET  /registry -> [sovereign packages]"
+  },
+  "sexp": "(stone 3 (model claude-sonnet-4-6) (project ABZU) (seal 29b86e67-worm-162) (status SIGNED))",
+  "status": "SIGNED"
+}

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="csrf-token" content={get_csrf_token()} />
+    <title>ABZU · Sovereign BEAM IDE</title>
+    <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
+    <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}></script>
+
+    <%!-- Novus.ai analytics — swap NOVUS_KEY env var for your dashboard key --%>
+    <%= if novus_key = System.get_env("NOVUS_KEY") do %>
+      <script>
+        (function(n,o,v,u,s,ai){
+          n[s]=n[s]||function(){(n[s].q=n[s].q||[]).push(arguments)};
+          var t=o.createElement(v);t.async=1;t.src=u;
+          var el=o.getElementsByTagName(v)[0];el.parentNode.insertBefore(t,el);
+        })(window,document,'script','https://cdn.pendo.io/agent/static/<%= novus_key %>/pendo.js','novus');
+        novus('initialize', { visitor: { id: 'anonymous' } });
+      </script>
+    <% end %>
+  </head>
+  <body class="abzu-body-root">
+    {@inner_content}
+  </body>
+</html>
