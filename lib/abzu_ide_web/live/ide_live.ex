@@ -44,7 +44,8 @@ defmodule AbzuIdeWeb.IdeLive do
          |> assign(:output, result)
          |> assign(:error, nil)
          |> assign(:run_seal, seal)
-         |> assign(:worm_entries, entries)}
+         |> assign(:worm_entries, entries)
+         |> push_event("abzu:beam_run", %{seal: seal.id, ok: true})}
 
       {:error, err} ->
         seal = WormChain.seal(:beam_error, %{code_hash: hash(code), error: err})
@@ -54,7 +55,8 @@ defmodule AbzuIdeWeb.IdeLive do
          |> assign(:output, nil)
          |> assign(:error, err)
          |> assign(:run_seal, seal)
-         |> assign(:worm_entries, entries)}
+         |> assign(:worm_entries, entries)
+         |> push_event("abzu:beam_run", %{seal: seal.id, ok: false})}
     end
   end
 
@@ -107,12 +109,13 @@ defmodule AbzuIdeWeb.IdeLive do
 
   def handle_info({ref, {:bob_done, text}}, socket) do
     Process.demonitor(ref, [:flush])
-    WormChain.seal(:bob_response, %{length: String.length(text)})
+    seal = WormChain.seal(:bob_response, %{length: String.length(text)})
     {:noreply,
      socket
      |> assign(:bob_response, text)
      |> assign(:bob_loading, false)
-     |> assign(:worm_entries, WormChain.entries())}
+     |> assign(:worm_entries, WormChain.entries())
+     |> push_event("abzu:bob_complete", %{seal: seal.id, length: String.length(text)})}
   end
 
   def handle_info({:DOWN, _ref, :process, _pid, _reason}, socket) do

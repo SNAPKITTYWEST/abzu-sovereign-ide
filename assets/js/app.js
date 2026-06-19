@@ -48,6 +48,41 @@ window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
 // connect if there are any LiveViews on the page
 liveSocket.connect()
 
+// ── Novus.ai (Pendo) event tracking ─────────────────────────────
+// Fires pendo.track() for key ABZU actions so the Novus dashboard
+// shows real usage data from the hackathon demo session.
+function novusTrack(event, props) {
+  if (window.pendo && typeof window.pendo.track === 'function') {
+    window.pendo.track(event, props || {})
+  }
+}
+
+// Page loaded = IDE opened
+window.addEventListener('phx:page-loading-stop', () => {
+  novusTrack('abzu_ide_load', { ts: Date.now() })
+})
+
+// Server pushes these events via Phoenix.LiveView.push_event/3
+window.addEventListener('phx:abzu:beam_run',    e => novusTrack('abzu_beam_run',    e.detail || {}))
+window.addEventListener('phx:abzu:bob_complete', e => novusTrack('abzu_bob_complete', e.detail || {}))
+window.addEventListener('phx:abzu:bob_repair',   e => novusTrack('abzu_bob_repair',   e.detail || {}))
+window.addEventListener('phx:abzu:pkg_install',  e => novusTrack('abzu_pkg_install',  e.detail || {}))
+window.addEventListener('phx:abzu:worm_seal',    e => novusTrack('abzu_worm_seal',    e.detail || {}))
+
+// Button-level click capture (backup path — works even without server push)
+document.addEventListener('click', e => {
+  const btn = e.target.closest('button[phx-click]')
+  if (!btn) return
+  const action = btn.getAttribute('phx-click')
+  const trackMap = {
+    'run':         'abzu_beam_run',
+    'bob_complete':'abzu_bob_complete',
+    'bob_explain': 'abzu_bob_explain',
+    'bob_repair':  'abzu_bob_repair',
+  }
+  if (trackMap[action]) novusTrack(trackMap[action], { ts: Date.now() })
+})
+
 // expose liveSocket on window for web console debug logs and latency simulation:
 // >> liveSocket.enableDebug()
 // >> liveSocket.enableLatencySim(1000)  // enabled for duration of browser session
