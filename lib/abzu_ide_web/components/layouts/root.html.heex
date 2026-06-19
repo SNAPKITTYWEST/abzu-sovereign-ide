@@ -8,33 +8,31 @@
     <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
     <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}></script>
 
-    <%!-- Novus.ai (Pendo) analytics — set NOVUS_KEY env var to your Pendo app subscription key --%>
-    <%= if novus_key = System.get_env("NOVUS_KEY") do %>
-      <script>
-        (function(apiKey){
-          (function(p,e,n,d,o){var v,w,x,y,z;o=p[d]=p[d]||{};o._q=o._q||[];
-          v=['initialize','identify','updateOptions','pageLoad','track'];
-          for(w=0,x=v.length;w<x;++w)(function(m){
-            o[m]=o[m]||function(){o._q[m===v[0]?'unshift':'push']([m].concat([].slice.call(arguments,0)));};
-          })(v[w]);
-          y=e.createElement(n);y.async=!0;y.src='https://cdn.pendo.io/agent/static/'+apiKey+'/pendo.js';
-          z=e.getElementsByTagName(n)[0];z.parentNode.insertBefore(y,z);
-          })(window,document,'script','pendo');
+    <%!-- Novus.ai (Pendo) analytics --%>
+    <script>
+      (function(apiKey){
+        (function(p,e,n,d,o){var v,w,x,y,z;o=p[d]=p[d]||{};o._q=o._q||[];
+        v=['initialize','identify','updateOptions','pageLoad','track','trackAgent'];
+        for(w=0,x=v.length;w<x;++w)(function(m){
+          o[m]=o[m]||function(){o._q[m===v[0]?'unshift':'push']([m].concat([].slice.call(arguments,0)));};
+        })(v[w]);
+        y=e.createElement(n);y.async=!0;y.src='https://cdn.pendo.io/agent/static/'+apiKey+'/pendo.js';
+        z=e.getElementsByTagName(n)[0];z.parentNode.insertBefore(y,z);
+        })(window,document,'script','pendo');
 
-          // Session visitor ID — stable per page load, no PII
-          var vid = 'abzu-' + (sessionStorage.getItem('abzu_vid') || (function(){
-            var id = Math.random().toString(36).slice(2,10);
-            sessionStorage.setItem('abzu_vid', id);
-            return id;
-          })());
+        // Session visitor ID — stable per page load, no PII
+        var vid = 'abzu-' + (sessionStorage.getItem('abzu_vid') || (function(){
+          var id = Math.random().toString(36).slice(2,10);
+          sessionStorage.setItem('abzu_vid', id);
+          return id;
+        })());
 
-          pendo.initialize({
-            visitor: { id: vid, product: 'ABZU', role: 'developer' },
-            account: { id: 'snapkittywest', name: 'SNAPKITTYWEST', product: 'ABZU Sovereign IDE' }
-          });
-        })('<%= novus_key %>');
-      </script>
-    <% end %>
+        pendo.initialize({
+          visitor: { id: vid, product: 'ABZU', role: 'developer' },
+          account: { id: 'snapkittywest', name: 'SNAPKITTYWEST', product: 'ABZU Sovereign IDE' }
+        });
+      })('51345f71-6d72-4928-a575-bc2fdbf72b48');
+    </script>
   </head>
   <body class="abzu-body-root">
     {@inner_content}
