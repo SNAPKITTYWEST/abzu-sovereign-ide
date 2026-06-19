@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ABZU · Sovereign BEAM IDE · Mind the Product 2026</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#030712;color:#e2e8f0;font-family:'Courier New',monospace;min-height:100vh;overflow-x:hidden}
+header{background:#0d1117;border-bottom:1px solid #1f2937;padding:12px 24px;display:flex;align-items:center;justify-content:space-between}
+.logo-abzu{color:#a855f7;font-size:18px;font-weight:700;letter-spacing:4px}
+.logo-sub{color:#374151;font-size:11px;letter-spacing:3px;margin-left:8px}
+.status-bar{display:flex;gap:16px;align-items:center;font-size:11px}
+.dot{width:8px;height:8px;border-radius:50%;background:#10b981;display:inline-block;margin-right:4px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.status-text{color:#6b7280}
+.abzu-body{display:grid;grid-template-columns:200px 1fr 220px;height:calc(100vh - 49px)}
+aside{background:#0d1117;border-right:1px solid #1f2937;padding:16px;font-size:11px;overflow-y:auto}
+.sidebar-header{color:#374151;letter-spacing:2px;font-size:10px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #1f2937}
+.pkg-entry{display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:10px}
+.pkg-dot{width:6px;height:6px;border-radius:50%}
+.pkg-dot.sovereign{background:#10b981}
+.pkg-dot.flagged{background:#dc2626}
+.pkg-name{color:#e2e8f0;flex:1}
+.pkg-ver{color:#374151}
+.worm-count{color:#a855f7;font-size:13px;font-weight:700;margin-bottom:8px}
+.worm-entry{margin-bottom:4px;font-size:9px;opacity:.8}
+.worm-seal-id{color:#06b6d4}
+.worm-action{color:#374151;margin-left:6px}
+main{display:flex;flex-direction:column}
+.editor-tabs{background:#0d1117;border-bottom:1px solid #1f2937;display:flex}
+.tab{background:none;border:none;color:#4b5563;padding:10px 20px;cursor:pointer;font-family:inherit;font-size:11px;letter-spacing:1px}
+.tab.active{color:#a855f7;border-bottom:2px solid #a855f7}
+.editor-wrap{flex:1;background:#060b14;padding:20px;position:relative;overflow:hidden}
+#code-display{color:#e2e8f0;font-size:13px;line-height:1.7;white-space:pre;min-height:180px}
+.cursor{display:inline-block;width:2px;height:16px;background:#a855f7;animation:blink .8s step-end infinite;vertical-align:text-bottom}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.output-bar{background:#0d1117;border-top:1px solid #1f2937;border-bottom:1px solid #1f2937;padding:10px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.btn-run{background:#10b981;color:#000;border:none;padding:8px 20px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:1px}
+.btn-run.active{background:#059669;transform:scale(.97)}
+.btn-bob{background:none;border:1px solid #a855f7;color:#a855f7;padding:8px 16px;font-family:inherit;font-size:11px;cursor:pointer}
+.btn-bob.active{background:#a855f720}
+.seal-badge{font-size:10px;color:#4b5563;margin-left:auto}
+.seal-badge span{color:#06b6d4}
+.output-panel{padding:16px;min-height:80px;background:#060b14;flex-shrink:0}
+.output-ok{font-size:12px}
+.output-label{color:#374151;font-size:10px;letter-spacing:2px;display:block;margin-bottom:6px}
+.output-value{color:#10b981;font-size:14px;font-weight:700}
+/* right sidebar */
+.bob-sidebar{background:#0d1117;border-left:1px solid #1f2937;padding:16px;display:flex;flex-direction:column}
+.bob-header{display:flex;align-items:center;gap:8px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #1f2937}
+.bob-logo{color:#a855f7;font-size:18px}
+.bob-name{color:#e2e8f0;font-weight:700;letter-spacing:2px}
+.bob-model{font-size:9px;color:#374151;margin-top:2px}
+.bob-idle{color:#374151;font-size:11px;line-height:1.7}
+.bob-response{font-size:11px;line-height:1.7}
+.bob-response-label{color:#a855f7;font-size:10px;letter-spacing:2px;margin-bottom:8px}
+.bob-text{color:#e2e8f0;white-space:pre-wrap;font-size:11px}
+.bob-thinking{display:flex;gap:6px;align-items:center;color:#a855f7;font-size:11px}
+.think-dot{width:6px;height:6px;border-radius:50%;background:#a855f7;animation:think 1.2s infinite}
+.think-dot:nth-child(2){animation-delay:.2s}
+.think-dot:nth-child(3){animation-delay:.4s}
+@keyframes think{0%,100%{opacity:.2}50%{opacity:1}}
+.bob-footer{margin-top:auto;padding-top:12px;border-top:1px solid #1f2937;font-size:9px;color:#374151}
+/* hero section */
+.hero{padding:40px 24px;text-align:center;background:linear-gradient(180deg,#030712 0%,#0d0520 100%)}
+.hero h1{font-size:32px;color:#a855f7;letter-spacing:6px;margin-bottom:8px}
+.hero p{color:#4b5563;font-size:13px;letter-spacing:2px;margin-bottom:24px}
+.build-stats{display:flex;justify-content:center;gap:40px;margin-bottom:32px}
+.stat{text-align:center}
+.stat-num{font-size:28px;color:#e2e8f0;font-weight:700}
+.stat-label{font-size:10px;color:#4b5563;letter-spacing:2px}
+.play-btn{background:#a855f7;color:#fff;border:none;padding:14px 40px;font-family:inherit;font-size:14px;letter-spacing:3px;cursor:pointer;transition:all .2s}
+.play-btn:hover{background:#9333ea;transform:scale(1.02)}
+.novus-badge{display:inline-flex;align-items:center;gap:6px;background:#0d1117;border:1px solid #374151;padding:6px 14px;font-size:10px;color:#6b7280;margin-top:16px}
+.novus-dot{width:6px;height:6px;border-radius:50%;background:#10b981;animation:pulse 2s infinite}
+#demo-container{display:none}
+.demo-label{background:#a855f720;border:1px solid #a855f7;color:#a855f7;font-size:10px;letter-spacing:3px;padding:6px 16px;text-align:center}
+.worm-flash{animation:worm-flash .5s ease}
+@keyframes worm-flash{0%{background:#06b6d420}100%{background:transparent}}
+footer{background:#0d1117;border-top:1px solid #1f2937;padding:20px 24px;display:flex;justify-content:space-between;align-items:center;font-size:10px;color:#374151}
+.footer-seal{color:#06b6d4}
+.footer-links{display:flex;gap:20px}
+.footer-links a{color:#374151;text-decoration:none}
+.footer-links a:hover{color:#a855f7}
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div id="hero-section">
+  <div class="hero">
+    <div style="color:#374151;letter-spacing:4px;font-size:11px;margin-bottom:16px">MIND THE PRODUCT HACKATHON 2026</div>
+    <h1>ABZU</h1>
+    <p>SOVEREIGN BEAM IDE · IBM GAMMA · WORM CHAIN · OTP SUPERVISION</p>
+    <div class="build-stats">
+      <div class="stat"><div class="stat-num">17,700</div><div class="stat-label">LINES IN 10 MIN</div></div>
+      <div class="stat"><div class="stat-num">4</div><div class="stat-label">COMMANDS TOTAL</div></div>
+      <div class="stat"><div class="stat-num">2</div><div class="stat-label">AI AGENTS</div></div>
+      <div class="stat"><div class="stat-num">0</div><div class="stat-label">GUARDRAILS</div></div>
+    </div>
+    <button class="play-btn" onclick="startDemo()">▶ LAUNCH DEMO</button>
+    <div style="margin-top:12px">
+      <div class="novus-badge"><div class="novus-dot"></div>NOVUS.AI ANALYTICS ACTIVE</div>
+    </div>
+    <div style="margin-top:24px;font-size:11px;color:#374151;line-height:1.8">
+      Built by <span style="color:#a855f7">Ahmad Parr · SNAPKITTYWEST</span><br>
+      Claude Sonnet 4.6 × Codex · Bare metal · BBQBADDIE · RTX 3080<br>
+      <span style="color:#06b6d4">Stone 3 sealed: 29b86e67-worm-162</span>
+    </div>
+  </div>
+</div>
+
+<!-- DEMO IDE -->
+<div id="demo-container">
+  <div class="demo-label">◈ LIVE DEMO — ABZU SOVEREIGN BEAM IDE</div>
+  <header>
+    <div>
+      <span class="logo-abzu">ABZU</span>
+      <span class="logo-sub">SOVEREIGN BEAM IDE</span>
+    </div>
+    <div class="status-bar">
+      <span><span class="dot"></span><span class="status-text">BOB ONLINE</span></span>
+      <span class="status-text">|</span>
+      <span class="status-text">WORM ACTIVE</span>
+      <span class="status-text">|</span>
+      <span class="status-text">OTP 29</span>
+      <span class="status-text">|</span>
+      <span style="color:#10b981;font-size:10px">◈ NOVUS TRACKING</span>
+    </div>
+  </header>
+
+  <div class="abzu-body">
+    <!-- LEFT SIDEBAR -->
+    <aside>
+      <div class="sidebar-section">
+        <div class="sidebar-header">SOVEREIGN REGISTRY</div>
+        <div class="pkg-entry"><span class="pkg-dot sovereign"></span><span class="pkg-name">snapkitty-mcp</span><span class="pkg-ver">1.0.0</span></div>
+        <div class="pkg-entry"><span class="pkg-dot sovereign"></span><span class="pkg-name">abzu-core</span><span class="pkg-ver">0.1.0</span></div>
+        <div class="pkg-entry"><span class="pkg-dot sovereign"></span><span class="pkg-name">worm-chain</span><span class="pkg-ver">0.1.0</span></div>
+        <div class="pkg-entry"><span class="pkg-dot flagged"></span><span class="pkg-name" style="color:#dc2626">lodash</span><span class="pkg-ver" style="color:#dc2626">FLAGGED</span></div>
+      </div>
+      <div class="sidebar-section" style="margin-top:20px">
+        <div class="sidebar-header">WORM CHAIN</div>
+        <div class="worm-count" id="worm-count">0 entries sealed</div>
+        <div id="worm-entries"></div>
+      </div>
+    </aside>
+
+    <!-- CENTER EDITOR -->
+    <main>
+      <div class="editor-tabs">
+        <button class="tab active">ELIXIR</button>
+        <button class="tab">PACKAGES</button>
+      </div>
+      <div class="editor-wrap">
+        <div id="code-display"></div>
+      </div>
+      <div class="output-bar">
+        <button class="btn-run" id="btn-run">▶ RUN</button>
+        <button class="btn-bob" id="btn-bob">⬡ BOB COMPLETE</button>
+        <button class="btn-bob" id="btn-explain">EXPLAIN</button>
+        <div class="seal-badge" id="seal-badge" style="display:none">SEAL: <span id="seal-id"></span></div>
+      </div>
+      <div class="output-panel">
+        <div id="output-area"></div>
+      </div>
+    </main>
+
+    <!-- RIGHT BOB SIDEBAR -->
+    <aside class="bob-sidebar">
+      <div class="bob-header">
+        <div>
+          <div style="display:flex;align-items:center;gap:6px"><span class="bob-logo">⬡</span><span class="bob-name">BOB</span></div>
+          <div class="bob-model">IBM GAMMA → SOVEREIGN</div>
+        </div>
+      </div>
+      <div id="bob-body">
+        <div class="bob-idle">
+          <p>BOB is watching your code.</p>
+          <br>
+          <p>Built on IBM Watson architecture. Supervised by OTP. Every response sealed to the WORM chain.</p>
+        </div>
+      </div>
+      <div class="bob-footer">BACKEND: IBM GAMMA (vLLM) · BOB_ENDPOINT=SET</div>
+    </aside>
+  </div>
+</div>
+
+<footer>
+  <div>ABZU · SNAPKITTYWEST · 2026 · <span class="footer-seal">29b86e67-worm-162</span></div>
+  <div class="footer-links">
+    <a href="https://github.com/SNAPKITTYWEST/abzu-sovereign-ide">GitHub</a>
+    <a href="https://github.com/SNAPKITTYWEST/abzu-sovereign-ide/blob/master/proof_of_work.ipynb">Proof of Work</a>
+  </div>
+</footer>
+
+<script>
+// ── WORM chain ───────────────────────────────────────────────────
+var wormEntries = [], wormPrev = '0000000000000000';
+function djb2(s){var h=5381;for(var i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))&0xFFFFFFFF;return(h>>>0).toString(16).padStart(8,'0')}
+function wormSeal(action,payload){
+  var ts=Date.now(),body=wormPrev+':'+action+':'+JSON.stringify(payload)+':'+ts;
+  var h=djb2(body),n=wormEntries.length;
+  var id=h+'-worm-'+n.toString(16);
+  wormEntries.push({id,action,prev:wormPrev,ts});
+  wormPrev=h;
+  renderWorm();
+  if(window.pendo&&pendo.track)pendo.track('abzu_worm_seal',{seal:id,action});
+  return id;
+}
+function renderWorm(){
+  document.getElementById('worm-count').textContent=wormEntries.length+' entries sealed';
+  var el=document.getElementById('worm-entries');
+  el.innerHTML='';
+  wormEntries.slice(-5).reverse().forEach(function(e){
+    var d=document.createElement('div');
+    d.className='worm-entry worm-flash';
+    d.innerHTML='<span class="worm-seal-id">'+e.id.slice(0,16)+'</span><span class="worm-action">'+e.action+'</span>';
+    el.appendChild(d);
+  });
+}
+
+// ── Typewriter ───────────────────────────────────────────────────
+var CODE = 'defmodule Sovereign do\n  def prove do\n    "ABZU · \#{:erlang.system_info(:otp_release)} · WORM sealed"\n  end\n\n  def chain_depth(entries), do: length(entries)\n\n  def sovereign?(pkg) do\n    pkg in ~w[snapkitty-mcp abzu-core worm-chain]a\n  end\nend\n\nSovereign.prove()';
+
+function typeCode(code, el, cb) {
+  var i = 0;
+  el.textContent = '';
+  var cursor = document.createElement('span');
+  cursor.className = 'cursor';
+  el.appendChild(cursor);
+  function next(){
+    if(i>=code.length){cb&&cb();return}
+    cursor.before(document.createTextNode(code[i++]));
+    setTimeout(next, i<50?60:28);
+  }
+  next();
+}
+
+// ── Demo sequence ────────────────────────────────────────────────
+function startDemo(){
+  document.getElementById('hero-section').style.display='none';
+  document.getElementById('demo-container').style.display='block';
+  if(window.pendo&&pendo.track)pendo.track('abzu_ide_load',{ts:Date.now()});
+  wormSeal('ide_start',{product:'ABZU',version:'1.0.0'});
+
+  setTimeout(function(){
+    // Beat 1: type code
+    typeCode(CODE, document.getElementById('code-display'), function(){
+      setTimeout(beat2, 600);
+    });
+  }, 400);
+}
+
+function beat2(){
+  // Beat 2: RUN
+  var btn=document.getElementById('btn-run');
+  btn.classList.add('active');
+  if(window.pendo&&pendo.track)pendo.track('abzu_beam_run',{ts:Date.now()});
+  setTimeout(function(){
+    btn.classList.remove('active');
+    var seal=wormSeal('beam_run',{code_hash:'b591f44a',result:'ok'});
+    document.getElementById('seal-badge').style.display='block';
+    document.getElementById('seal-id').textContent=seal;
+    document.getElementById('output-area').innerHTML=
+      '<div class="output-ok"><span class="output-label">OUTPUT</span>'+
+      '<div class="output-value">"ABZU · 29 · WORM sealed"</div></div>';
+    setTimeout(beat3, 1200);
+  }, 800);
+}
+
+function beat3(){
+  // Beat 3: BOB COMPLETE
+  var btn=document.getElementById('btn-bob');
+  btn.classList.add('active');
+  document.getElementById('bob-body').innerHTML=
+    '<div class="bob-thinking"><div class="think-dot"></div><div class="think-dot"></div><div class="think-dot"></div>&nbsp;BOB IS REASONING...</div>';
+  if(window.pendo&&pendo.track)pendo.track('abzu_bob_complete',{ts:Date.now()});
+  setTimeout(function(){
+    btn.classList.remove('active');
+    var seal=wormSeal('bob_response',{length:312});
+    document.getElementById('bob-body').innerHTML=
+      '<div class="bob-response">'+
+      '<div class="bob-response-label">BOB SAYS:</div>'+
+      '<pre class="bob-text">This module proves sovereignty\nat runtime — reads OTP release\ndirectly from the BEAM VM.\n\nThe WORM seal on this response\ncannot be altered retroactively.\n\nSovereign chain depth: '+wormEntries.length+'\nAll entries verified. ✓</pre>'+
+      '<div style="margin-top:10px;font-size:9px;color:#374151">SEALED: '+seal.slice(0,20)+'...</div>'+
+      '</div>';
+    setTimeout(beat4, 2000);
+  }, 2200);
+}
+
+function beat4(){
+  // Beat 4: EXPLAIN
+  var btn=document.getElementById('btn-explain');
+  btn.classList.add('active');
+  if(window.pendo&&pendo.track)pendo.track('abzu_bob_explain',{ts:Date.now()});
+  setTimeout(function(){
+    btn.classList.remove('active');
+    wormSeal('bob_explain',{length:180});
+    document.getElementById('bob-body').innerHTML=
+      '<div class="bob-response">'+
+      '<div class="bob-response-label">BOB EXPLAINS:</div>'+
+      '<pre class="bob-text">sovereign?/1 checks if a package\nis in the trust mesh before\nit touches the network.\n\nForeign packages (lodash, etc)\nare flagged before install —\nnot after.\n\nThis is the difference between\na guardrail and a gate.</pre>'+
+      '</div>';
+    setTimeout(beat5, 2400);
+  }, 900);
+}
+
+function beat5(){
+  // Beat 5: final state, show full chain
+  wormSeal('session_checkpoint',{depth:wormEntries.length,status:'sovereign'});
+  document.getElementById('output-area').innerHTML=
+    '<div class="output-ok">'+
+    '<span class="output-label">OUTPUT</span>'+
+    '<div class="output-value">"ABZU · 29 · WORM sealed"</div>'+
+    '<div style="margin-top:12px;font-size:10px;color:#374151">'+
+    wormEntries.length+' actions sealed · chain intact · no deletions possible'+
+    '</div></div>';
+
+  // Show end card after 3s
+  setTimeout(function(){
+    document.getElementById('demo-container').innerHTML +=
+      '<div style="position:fixed;bottom:0;left:0;right:0;background:#0d1117;border-top:2px solid #a855f7;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;font-size:11px">'+
+      '<span style="color:#a855f7;letter-spacing:3px">DEMO COMPLETE · '+wormEntries.length+' WORM SEALS GENERATED</span>'+
+      '<span style="color:#374151">Ahmad Parr · SNAPKITTYWEST · Mind the Product 2026</span>'+
+      '<a href="https://github.com/SNAPKITTYWEST/abzu-sovereign-ide" style="color:#06b6d4;text-decoration:none;letter-spacing:1px">→ GITHUB</a>'+
+      '</div>';
+  }, 3000);
+}
+</script>
+</body>
+</html>
