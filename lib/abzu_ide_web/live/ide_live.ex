@@ -5,13 +5,13 @@ defmodule AbzuIdeWeb.IdeLive do
 
   @default_code """
   # ABZU Sovereign BEAM IDE
-  # Write Elixir. BOB is watching.
+  # Write Elixir. BOB is watching. CATCODE is screening.
 
   defmodule Hello do
-    def greet(name), do: "Hello, \#{name}. The chain remembers."
+    def greet(name), do: "Hello, #{name}. The chain remembers."
   end
 
-  Hello.greet("sovereign")
+  IO.puts Hello.greet("sovereign")
   """
 
   def mount(_params, _session, socket) do
@@ -21,6 +21,7 @@ defmodule AbzuIdeWeb.IdeLive do
      |> assign(:output, nil)
      |> assign(:error, nil)
      |> assign(:bob_response, nil)
+     |> assign(:bob_verdict, nil)
      |> assign(:bob_loading, false)
      |> assign(:active_tab, :editor)
      |> assign(:worm_entries, [])
@@ -63,28 +64,24 @@ defmodule AbzuIdeWeb.IdeLive do
   def handle_event("bob_complete", _params, socket) do
     code = socket.assigns.code
     socket = assign(socket, :bob_loading, true)
-
     Task.async(fn ->
       case BobAgent.complete(code) do
-        {:ok, resp} -> {:bob_done, resp}
-        {:error, e} -> {:bob_done, "BOB error: #{e}"}
+        {:ok, {resp, verdict}} -> {:bob_done, resp, verdict}
+        {:error, e} -> {:bob_done, "BOB error: #{e}", %{verdict: "SKIP", type: nil, reason: e}}
       end
     end)
-
     {:noreply, socket}
   end
 
   def handle_event("bob_explain", _params, socket) do
     code = socket.assigns.code
     socket = assign(socket, :bob_loading, true)
-
     Task.async(fn ->
       case BobAgent.explain(code) do
-        {:ok, resp} -> {:bob_done, resp}
-        {:error, e} -> {:bob_done, "BOB error: #{e}"}
+        {:ok, {resp, verdict}} -> {:bob_done, resp, verdict}
+        {:error, e} -> {:bob_done, "BOB error: #{e}", %{verdict: "SKIP", type: nil, reason: e}}
       end
     end)
-
     {:noreply, socket}
   end
 
@@ -92,14 +89,12 @@ defmodule AbzuIdeWeb.IdeLive do
     error = socket.assigns.error || "unknown error"
     code = socket.assigns.code
     socket = assign(socket, :bob_loading, true)
-
     Task.async(fn ->
       case BobAgent.repair(code, error) do
-        {:ok, resp} -> {:bob_done, resp}
-        {:error, e} -> {:bob_done, "BOB error: #{e}"}
+        {:ok, {resp, verdict}} -> {:bob_done, resp, verdict}
+        {:error, e} -> {:bob_done, "BOB error: #{e}", %{verdict: "SKIP", type: nil, reason: e}}
       end
     end)
-
     {:noreply, socket}
   end
 
@@ -107,15 +102,23 @@ defmodule AbzuIdeWeb.IdeLive do
     {:noreply, assign(socket, :active_tab, String.to_atom(tab))}
   end
 
-  def handle_info({ref, {:bob_done, text}}, socket) do
+  def handle_info({ref, {:bob_done, text, verdict}}, socket) do
     Process.demonitor(ref, [:flush])
-    seal = WormChain.seal(:bob_response, %{length: String.length(text)})
+    seal = WormChain.seal(:bob_response, %{
+      length: String.length(text),
+      catcode: verdict.verdict
+    })
     {:noreply,
      socket
      |> assign(:bob_response, text)
+     |> assign(:bob_verdict, verdict)
      |> assign(:bob_loading, false)
      |> assign(:worm_entries, WormChain.entries())
-     |> push_event("abzu:bob_complete", %{seal: seal.id, length: String.length(text)})}
+     |> push_event("abzu:bob_complete", %{
+          seal: seal.id,
+          length: String.length(text),
+          catcode: verdict.verdict
+        })}
   end
 
   def handle_info({:DOWN, _ref, :process, _pid, _reason}, socket) do
@@ -129,7 +132,6 @@ defmodule AbzuIdeWeb.IdeLive do
   def render(assigns) do
     ~H"""
     <div class="abzu-shell">
-      <%!-- TOP BAR --%>
       <header class="abzu-topbar">
         <div class="abzu-logo">
           <span class="logo-abzu">ABZU</span>
@@ -140,15 +142,15 @@ defmodule AbzuIdeWeb.IdeLive do
           <span class="status-dot alive"></span>
           <span class="status-text">BOB ONLINE</span>
           <span class="status-sep">|</span>
+          <span class="status-text">CATCODE ACTIVE</span>
+          <span class="status-sep">|</span>
           <span class="status-text">WORM ACTIVE</span>
           <span class="status-sep">|</span>
           <span class="status-text">OTP <%= :erlang.system_info(:otp_release) %></span>
         </div>
       </header>
 
-      <%!-- MAIN LAYOUT --%>
       <div class="abzu-body">
-        <%!-- LEFT: FILE + REGISTRY --%>
         <aside class="abzu-sidebar-left">
           <div class="sidebar-section">
             <div class="sidebar-header">SOVEREIGN REGISTRY</div>
@@ -162,9 +164,7 @@ defmodule AbzuIdeWeb.IdeLive do
           </div>
           <div class="sidebar-section">
             <div class="sidebar-header">WORM CHAIN</div>
-            <div class="worm-count">
-              <%= length(@worm_entries) %> entries sealed
-            </div>
+            <div class="worm-count"><%= length(@worm_entries) %> entries sealed</div>
             <%= for entry <- Enum.take(@worm_entries, 5) do %>
               <div class="worm-entry">
                 <span class="worm-seal-id"><%= entry.id |> String.slice(0, 16) %></span>
@@ -174,54 +174,30 @@ defmodule AbzuIdeWeb.IdeLive do
           </div>
         </aside>
 
-        <%!-- CENTER: EDITOR + OUTPUT --%>
         <main class="abzu-main">
           <div class="editor-tabs">
-            <button
-              class={"tab #{if @active_tab == :editor, do: "active"}"}
-              phx-click="set_tab" phx-value-tab="editor">
-              ELIXIR
-            </button>
-            <button
-              class={"tab #{if @active_tab == :registry, do: "active"}"}
-              phx-click="set_tab" phx-value-tab="registry">
-              PACKAGES
-            </button>
+            <button class={"tab #{if @active_tab == :editor, do: "active"}"} phx-click="set_tab" phx-value-tab="editor">ELIXIR</button>
+            <button class={"tab #{if @active_tab == :registry, do: "active"}"} phx-click="set_tab" phx-value-tab="registry">PACKAGES</button>
           </div>
 
           <%= if @active_tab == :editor do %>
             <div class="editor-wrap" id="editor-wrap">
-              <div
-                id="monaco-editor"
-                phx-hook="MonacoEditor"
-                phx-update="ignore"
-                data-code={@code}
-                class="monaco-container">
-              </div>
+              <div id="monaco-editor" phx-hook="MonacoEditor" phx-update="ignore" data-code={@code} class="monaco-container"></div>
             </div>
 
             <div class="output-bar">
               <div class="output-controls">
-                <button class="btn-run" phx-click="run">
-                  ▶ RUN
-                </button>
+                <button class="btn-run" phx-click="run">▶ RUN</button>
                 <button class="btn-bob" phx-click="bob_complete" disabled={@bob_loading}>
-                  <%= if @bob_loading, do: "BOB THINKING...", else: "⬡ BOB COMPLETE" %>
+                  <%= if @bob_loading, do: "BOB + CATCODE...", else: "⬡ BOB COMPLETE" %>
                 </button>
-                <button class="btn-bob-sm" phx-click="bob_explain" disabled={@bob_loading}>
-                  EXPLAIN
-                </button>
+                <button class="btn-bob-sm" phx-click="bob_explain" disabled={@bob_loading}>EXPLAIN</button>
                 <%= if @error do %>
-                  <button class="btn-bob-sm repair" phx-click="bob_repair" disabled={@bob_loading}>
-                    REPAIR
-                  </button>
+                  <button class="btn-bob-sm repair" phx-click="bob_repair" disabled={@bob_loading}>REPAIR</button>
                 <% end %>
               </div>
-
               <%= if @run_seal do %>
-                <div class="seal-badge">
-                  SEAL: <span class="seal-id"><%= @run_seal.id %></span>
-                </div>
+                <div class="seal-badge">SEAL: <span class="seal-id"><%= @run_seal.id %></span></div>
               <% end %>
             </div>
 
@@ -244,14 +220,9 @@ defmodule AbzuIdeWeb.IdeLive do
           <%= if @active_tab == :registry do %>
             <div class="registry-panel">
               <div class="registry-header">SOVEREIGN NPM REGISTRY</div>
-              <div class="registry-desc">
-                Every package install is WORM-sealed before it hits the network.
-                Packages outside the sovereign mesh are flagged.
-              </div>
+              <div class="registry-desc">Every package install is WORM-sealed before it hits the network.</div>
               <table class="registry-table">
-                <thead>
-                  <tr><th>PACKAGE</th><th>VERSION</th><th>STATUS</th><th>ORG</th></tr>
-                </thead>
+                <thead><tr><th>PACKAGE</th><th>VERSION</th><th>STATUS</th><th>ORG</th></tr></thead>
                 <tbody>
                   <%= for pkg <- @registry_packages do %>
                     <tr>
@@ -267,7 +238,6 @@ defmodule AbzuIdeWeb.IdeLive do
           <% end %>
         </main>
 
-        <%!-- RIGHT: BOB SIDEBAR --%>
         <aside class="abzu-sidebar-bob">
           <div class="bob-header">
             <span class="bob-logo">⬡</span>
@@ -281,11 +251,24 @@ defmodule AbzuIdeWeb.IdeLive do
                 <div class="think-dot"></div>
                 <div class="think-dot"></div>
                 <div class="think-dot"></div>
-                BOB IS REASONING...
+                BOB REASONING → CATCODE SCREENING...
               </div>
             <% end %>
 
             <%= if @bob_response do %>
+              <%!-- CATCODE VERDICT BADGE --%>
+              <%= if @bob_verdict do %>
+                <div class={"catcode-badge catcode-#{String.downcase(@bob_verdict.verdict)}"}>
+                  <%= case @bob_verdict.verdict do %>
+                    <% "CLEAN" -> %>
+                      ✓ CATCODE CLEAN — response verified
+                    <% "FLAGGED" -> %>
+                      ⚠ CATCODE <%= @bob_verdict.type %> — <%= @bob_verdict.reason %>
+                    <% _ -> %>
+                      ○ CATCODE SKIPPED
+                  <% end %>
+                </div>
+              <% end %>
               <div class="bob-response">
                 <div class="bob-response-label">BOB SAYS:</div>
                 <pre class="bob-text"><%= @bob_response %></pre>
@@ -296,14 +279,17 @@ defmodule AbzuIdeWeb.IdeLive do
               <div class="bob-idle">
                 <p>BOB is watching your code.</p>
                 <p>Press <kbd>⬡ BOB COMPLETE</kbd> to invoke sovereign reasoning.</p>
-                <p class="bob-chain-note">Every BOB response is sealed to the WORM chain.</p>
+                <p class="bob-chain-note">BOB → CATCODE Guardian → WORM seal → you.</p>
               </div>
             <% end %>
           </div>
 
           <div class="bob-footer">
             <span class="bob-backend">
-              BACKEND: IBM GAMMA (vLLM) · BOB_ENDPOINT=<%= System.get_env("BOB_ENDPOINT") && "SET" || "NOT SET" %>
+              BACKEND: IBM GAMMA · BOB_ENDPOINT=<%= System.get_env("BOB_ENDPOINT") && "SET" || "NOT SET" %>
+            </span>
+            <span class="bob-backend">
+              CATCODE: ACTIVE · MODEL=<%= System.get_env("CATCODE_MODEL", System.get_env("BOB_MODEL", "nemotron")) %>
             </span>
           </div>
         </aside>
