@@ -2,7 +2,12 @@ defmodule AbzuIde.BobAgent do
   @moduledoc """
   BOB — Sovereign AI companion.
   Backend: IBM Gamma vLLM (BOB_ENDPOINT env var, OpenAI-compatible).
+  Every response screened by CATCODE Guardian before delivery.
+
+  Returns {:ok, {text, verdict}} where verdict is the CATCODE result.
   """
+
+  alias AbzuIde.CatcodeGuardian
 
   @bob_system """
   You are BOB — Sovereign Reasoning Engine.
@@ -15,15 +20,27 @@ defmodule AbzuIde.BobAgent do
   """
 
   def complete(code, context \\ "") do
-    call_gamma(build_prompt(code, context))
+    prompt = build_prompt(code, context)
+    with {:ok, text} <- call_gamma(prompt) do
+      {:ok, verdict} = CatcodeGuardian.screen(prompt, text)
+      {:ok, {text, verdict}}
+    end
   end
 
   def explain(code) do
-    call_gamma("Explain this Elixir/BEAM code concisely. What does it do? Any issues?\n\n```elixir\n#{code}\n```")
+    prompt = "Explain this Elixir/BEAM code concisely. What does it do? Any issues?\n\n```elixir\n#{code}\n```"
+    with {:ok, text} <- call_gamma(prompt) do
+      {:ok, verdict} = CatcodeGuardian.screen(prompt, text)
+      {:ok, {text, verdict}}
+    end
   end
 
   def repair(code, error) do
-    call_gamma("This Elixir code produced an error. Fix it.\n\nCode:\n```elixir\n#{code}\n```\n\nError: #{error}\n\nReturn only the fixed code.")
+    prompt = "This Elixir code produced an error. Fix it.\n\nCode:\n```elixir\n#{code}\n```\n\nError: #{error}\n\nReturn only the fixed code."
+    with {:ok, text} <- call_gamma(prompt) do
+      {:ok, verdict} = CatcodeGuardian.screen(prompt, text)
+      {:ok, {text, verdict}}
+    end
   end
 
   defp build_prompt(code, ""),
@@ -34,11 +51,11 @@ defmodule AbzuIde.BobAgent do
   defp call_gamma(prompt) do
     case System.get_env("BOB_ENDPOINT") do
       nil ->
-        {:error, "BOB_ENDPOINT not set — point to your IBM Gamma vLLM server"}
+        {:error, "BOB_ENDPOINT not set — point to IBM Gamma vLLM or Ollama"}
 
       endpoint ->
         body = Jason.encode!(%{
-          model: System.get_env("BOB_MODEL", "ibm-gamma"),
+          model: System.get_env("BOB_MODEL", "nemotron"),
           messages: [
             %{role: "system", content: @bob_system},
             %{role: "user", content: prompt}
