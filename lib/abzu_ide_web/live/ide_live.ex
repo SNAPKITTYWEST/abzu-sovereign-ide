@@ -1,9 +1,9 @@
 defmodule AbzuIdeWeb.IdeLive do
   use AbzuIdeWeb, :live_view
 
-  alias AbzuIde.{BeamRunner, BobAgent, WormChain, SovereignRegistry}
+  alias AbzuIde.{BeamRunner, NxRunner, JRunner, BobAgent, WormChain, SovereignRegistry}
 
-  @default_code """
+  @default_elixir """
   # ABZU Sovereign BEAM IDE
   # Write Elixir. BOB is watching. CATCODE is screening.
 
@@ -14,55 +14,119 @@ defmodule AbzuIdeWeb.IdeLive do
   IO.puts Hello.greet("sovereign")
   """
 
+  @default_nx """
+  # Nx Array Language — APL-style tensors on the BEAM
+  # All operations apply to the WHOLE array at once. No loops.
+
+  phi = (1 + Nx.sqrt(Nx.tensor(5.0))) |> Nx.divide(2)
+  IO.inspect(phi, label: "phi")
+
+  # phi contraction sequence: 1/phi^n
+  n = Nx.iota({10})
+  sequence = Nx.pow(phi, Nx.negate(n))
+  IO.inspect(sequence, label: "phi contraction")
+
+  # Fibonacci via Nx
+  fib = Nx.tensor([0, 1, 1, 2, 3, 5, 8, 13, 21, 34])
+  IO.inspect(Nx.sum(fib), label: "sum of first 10 fib")
+  """
+
+  @default_j """
+  NB. J Language — ASCII APL
+  NB. Verb-noun composition. No loops. Pure math.
+
+  NB. Sum 1 to 100
+  +/ i. 101
+
+  NB. Golden ratio
+  phi =: (1 + %: 5) % 2
+
+  NB. phi contraction sequence
+  phi ^ - i. 10
+
+  NB. Fibonacci
+  (, +/)^: 8 ] 0 1
+
+  NB. Average (fork — no variable names needed)
+  (+/ % #) 1 2 3 5 8 13 21
+  """
+
   def mount(_params, _session, socket) do
     {:ok,
      socket
-     |> assign(:code, @default_code)
+     |> assign(:elixir_code, @default_elixir)
+     |> assign(:nx_code, @default_nx)
+     |> assign(:j_code, @default_j)
      |> assign(:output, nil)
      |> assign(:error, nil)
      |> assign(:bob_response, nil)
      |> assign(:bob_verdict, nil)
      |> assign(:bob_loading, false)
-     |> assign(:active_tab, :editor)
+     |> assign(:active_tab, :elixir)
      |> assign(:worm_entries, [])
      |> assign(:registry_packages, SovereignRegistry.sovereign_packages())
-     |> assign(:run_seal, nil)}
+     |> assign(:run_seal, nil)
+     |> assign(:j_installed, JRunner.installed?())}
   end
 
   def handle_event("code_change", %{"code" => code}, socket) do
-    {:noreply, assign(socket, :code, code)}
+    key = case socket.assigns.active_tab do
+      :elixir -> :elixir_code
+      :nx -> :nx_code
+      :j -> :j_code
+      _ -> :elixir_code
+    end
+    {:noreply, assign(socket, key, code)}
   end
 
   def handle_event("run", _params, socket) do
-    code = socket.assigns.code
+    case socket.assigns.active_tab do
+      :nx -> run_nx(socket)
+      :j -> run_j(socket)
+      _ -> run_elixir(socket)
+    end
+  end
 
+  defp run_elixir(socket) do
+    code = socket.assigns.elixir_code
     case BeamRunner.run(code) do
       {:ok, result} ->
         seal = WormChain.seal(:beam_run, %{code_hash: hash(code), result: result})
-        entries = WormChain.entries()
-        {:noreply,
-         socket
-         |> assign(:output, result)
-         |> assign(:error, nil)
-         |> assign(:run_seal, seal)
-         |> assign(:worm_entries, entries)
+        {:noreply, socket |> assign(:output, result) |> assign(:error, nil)
+         |> assign(:run_seal, seal) |> assign(:worm_entries, WormChain.entries())
          |> push_event("abzu:beam_run", %{seal: seal.id, ok: true})}
-
       {:error, err} ->
         seal = WormChain.seal(:beam_error, %{code_hash: hash(code), error: err})
-        entries = WormChain.entries()
-        {:noreply,
-         socket
-         |> assign(:output, nil)
-         |> assign(:error, err)
-         |> assign(:run_seal, seal)
-         |> assign(:worm_entries, entries)
-         |> push_event("abzu:beam_run", %{seal: seal.id, ok: false})}
+        {:noreply, socket |> assign(:output, nil) |> assign(:error, err)
+         |> assign(:run_seal, seal) |> assign(:worm_entries, WormChain.entries())}
+    end
+  end
+
+  defp run_nx(socket) do
+    code = socket.assigns.nx_code
+    case NxRunner.run(code) do
+      {:ok, result, seal} ->
+        {:noreply, socket |> assign(:output, result) |> assign(:error, nil)
+         |> assign(:run_seal, seal) |> assign(:worm_entries, WormChain.entries())}
+      {:error, err, seal} ->
+        {:noreply, socket |> assign(:output, nil) |> assign(:error, err)
+         |> assign(:run_seal, seal) |> assign(:worm_entries, WormChain.entries())}
+    end
+  end
+
+  defp run_j(socket) do
+    code = socket.assigns.j_code
+    case JRunner.run(code) do
+      {:ok, result, seal} ->
+        {:noreply, socket |> assign(:output, result) |> assign(:error, nil)
+         |> assign(:run_seal, seal) |> assign(:worm_entries, WormChain.entries())}
+      {:error, err, _seal} ->
+        {:noreply, socket |> assign(:output, nil) |> assign(:error, err)}
     end
   end
 
   def handle_event("bob_complete", _params, socket) do
-    code = socket.assigns.code
+    code = current_code(socket)
     socket = assign(socket, :bob_loading, true)
     Task.async(fn ->
       case BobAgent.complete(code) do
@@ -74,7 +138,7 @@ defmodule AbzuIdeWeb.IdeLive do
   end
 
   def handle_event("bob_explain", _params, socket) do
-    code = socket.assigns.code
+    code = current_code(socket)
     socket = assign(socket, :bob_loading, true)
     Task.async(fn ->
       case BobAgent.explain(code) do
@@ -87,7 +151,7 @@ defmodule AbzuIdeWeb.IdeLive do
 
   def handle_event("bob_repair", _params, socket) do
     error = socket.assigns.error || "unknown error"
-    code = socket.assigns.code
+    code = current_code(socket)
     socket = assign(socket, :bob_loading, true)
     Task.async(fn ->
       case BobAgent.repair(code, error) do
@@ -99,30 +163,33 @@ defmodule AbzuIdeWeb.IdeLive do
   end
 
   def handle_event("set_tab", %{"tab" => tab}, socket) do
-    {:noreply, assign(socket, :active_tab, String.to_atom(tab))}
+    {:noreply, socket
+     |> assign(:active_tab, String.to_atom(tab))
+     |> assign(:output, nil)
+     |> assign(:error, nil)}
   end
 
   def handle_info({ref, {:bob_done, text, verdict}}, socket) do
     Process.demonitor(ref, [:flush])
-    seal = WormChain.seal(:bob_response, %{
-      length: String.length(text),
-      catcode: verdict.verdict
-    })
-    {:noreply,
-     socket
+    seal = WormChain.seal(:bob_response, %{length: String.length(text), catcode: verdict.verdict})
+    {:noreply, socket
      |> assign(:bob_response, text)
      |> assign(:bob_verdict, verdict)
      |> assign(:bob_loading, false)
      |> assign(:worm_entries, WormChain.entries())
-     |> push_event("abzu:bob_complete", %{
-          seal: seal.id,
-          length: String.length(text),
-          catcode: verdict.verdict
-        })}
+     |> push_event("abzu:bob_complete", %{seal: seal.id, catcode: verdict.verdict})}
   end
 
   def handle_info({:DOWN, _ref, :process, _pid, _reason}, socket) do
     {:noreply, assign(socket, :bob_loading, false)}
+  end
+
+  defp current_code(socket) do
+    case socket.assigns.active_tab do
+      :nx -> socket.assigns.nx_code
+      :j -> socket.assigns.j_code
+      _ -> socket.assigns.elixir_code
+    end
   end
 
   defp hash(str) do
@@ -136,7 +203,7 @@ defmodule AbzuIdeWeb.IdeLive do
         <div class="abzu-logo">
           <span class="logo-abzu">ABZU</span>
           <span class="logo-dot">·</span>
-          <span class="logo-sub">SOVEREIGN BEAM IDE</span>
+          <span class="logo-sub">SOVEREIGN ARRAY SHELL</span>
         </div>
         <div class="abzu-status">
           <span class="status-dot alive"></span>
@@ -144,7 +211,9 @@ defmodule AbzuIdeWeb.IdeLive do
           <span class="status-sep">|</span>
           <span class="status-text">CATCODE ACTIVE</span>
           <span class="status-sep">|</span>
-          <span class="status-text">WORM ACTIVE</span>
+          <span class="status-text">NX READY</span>
+          <span class="status-sep">|</span>
+          <span class="status-text">J <%= if @j_installed, do: "READY", else: "OFFLINE" %></span>
           <span class="status-sep">|</span>
           <span class="status-text">OTP <%= :erlang.system_info(:otp_release) %></span>
         </div>
@@ -176,18 +245,31 @@ defmodule AbzuIdeWeb.IdeLive do
 
         <main class="abzu-main">
           <div class="editor-tabs">
-            <button class={"tab #{if @active_tab == :editor, do: "active"}"} phx-click="set_tab" phx-value-tab="editor">ELIXIR</button>
+            <button class={"tab #{if @active_tab == :elixir, do: "active"}"} phx-click="set_tab" phx-value-tab="elixir">ELIXIR</button>
+            <button class={"tab #{if @active_tab == :nx, do: "active"}"} phx-click="set_tab" phx-value-tab="nx">NX ARRAYS</button>
+            <button class={"tab #{if @active_tab == :j, do: "active"}"} phx-click="set_tab" phx-value-tab="j">
+              J <%= unless @j_installed, do: "·offline" %>
+            </button>
             <button class={"tab #{if @active_tab == :registry, do: "active"}"} phx-click="set_tab" phx-value-tab="registry">PACKAGES</button>
           </div>
 
-          <%= if @active_tab == :editor do %>
+          <%= if @active_tab in [:elixir, :nx, :j] do %>
             <div class="editor-wrap" id="editor-wrap">
-              <div id="monaco-editor" phx-hook="MonacoEditor" phx-update="ignore" data-code={@code} class="monaco-container"></div>
+              <div
+                id="monaco-editor"
+                phx-hook="MonacoEditor"
+                phx-update="ignore"
+                data-code={current_editor_code(assigns)}
+                data-language={editor_language(@active_tab)}
+                class="monaco-container">
+              </div>
             </div>
 
             <div class="output-bar">
               <div class="output-controls">
-                <button class="btn-run" phx-click="run">▶ RUN</button>
+                <button class="btn-run" phx-click="run">
+                  ▶ RUN <%= tab_label(@active_tab) %>
+                </button>
                 <button class="btn-bob" phx-click="bob_complete" disabled={@bob_loading}>
                   <%= if @bob_loading, do: "BOB + CATCODE...", else: "⬡ BOB COMPLETE" %>
                 </button>
@@ -219,8 +301,7 @@ defmodule AbzuIdeWeb.IdeLive do
 
           <%= if @active_tab == :registry do %>
             <div class="registry-panel">
-              <div class="registry-header">SOVEREIGN NPM REGISTRY</div>
-              <div class="registry-desc">Every package install is WORM-sealed before it hits the network.</div>
+              <div class="registry-header">SOVEREIGN PACKAGE REGISTRY</div>
               <table class="registry-table">
                 <thead><tr><th>PACKAGE</th><th>VERSION</th><th>STATUS</th><th>ORG</th></tr></thead>
                 <tbody>
@@ -244,28 +325,20 @@ defmodule AbzuIdeWeb.IdeLive do
             <span class="bob-name">BOB</span>
             <span class="bob-model">IBM GAMMA → SOVEREIGN</span>
           </div>
-
           <div class="bob-body">
             <%= if @bob_loading do %>
               <div class="bob-thinking">
-                <div class="think-dot"></div>
-                <div class="think-dot"></div>
-                <div class="think-dot"></div>
+                <div class="think-dot"></div><div class="think-dot"></div><div class="think-dot"></div>
                 BOB REASONING → CATCODE SCREENING...
               </div>
             <% end %>
-
             <%= if @bob_response do %>
-              <%!-- CATCODE VERDICT BADGE --%>
               <%= if @bob_verdict do %>
                 <div class={"catcode-badge catcode-#{String.downcase(@bob_verdict.verdict)}"}>
                   <%= case @bob_verdict.verdict do %>
-                    <% "CLEAN" -> %>
-                      ✓ CATCODE CLEAN — response verified
-                    <% "FLAGGED" -> %>
-                      ⚠ CATCODE <%= @bob_verdict.type %> — <%= @bob_verdict.reason %>
-                    <% _ -> %>
-                      ○ CATCODE SKIPPED
+                    <% "CLEAN" -> %>✓ CATCODE CLEAN
+                    <% "FLAGGED" -> %>⚠ CATCODE <%= @bob_verdict.type %> — <%= @bob_verdict.reason %>
+                    <% _ -> %>○ CATCODE SKIPPED
                   <% end %>
                 </div>
               <% end %>
@@ -274,27 +347,32 @@ defmodule AbzuIdeWeb.IdeLive do
                 <pre class="bob-text"><%= @bob_response %></pre>
               </div>
             <% end %>
-
             <%= unless @bob_response || @bob_loading do %>
               <div class="bob-idle">
-                <p>BOB is watching your code.</p>
-                <p>Press <kbd>⬡ BOB COMPLETE</kbd> to invoke sovereign reasoning.</p>
-                <p class="bob-chain-note">BOB → CATCODE Guardian → WORM seal → you.</p>
+                <p>BOB watches all three languages.</p>
+                <p>Elixir · Nx Arrays · J</p>
+                <p class="bob-chain-note">BOB → CATCODE → WORM → you.</p>
               </div>
             <% end %>
           </div>
-
           <div class="bob-footer">
-            <span class="bob-backend">
-              BACKEND: IBM GAMMA · BOB_ENDPOINT=<%= System.get_env("BOB_ENDPOINT") && "SET" || "NOT SET" %>
-            </span>
-            <span class="bob-backend">
-              CATCODE: ACTIVE · MODEL=<%= System.get_env("CATCODE_MODEL", System.get_env("BOB_MODEL", "nemotron")) %>
-            </span>
+            <span class="bob-backend">BOB_ENDPOINT=<%= System.get_env("BOB_ENDPOINT") && "SET" || "NOT SET" %></span>
           </div>
         </aside>
       </div>
     </div>
     """
   end
+
+  defp current_editor_code(%{active_tab: :nx, nx_code: code}), do: code
+  defp current_editor_code(%{active_tab: :j, j_code: code}), do: code
+  defp current_editor_code(%{elixir_code: code}), do: code
+
+  defp editor_language(:nx), do: "elixir"
+  defp editor_language(:j), do: "plaintext"
+  defp editor_language(_), do: "elixir"
+
+  defp tab_label(:nx), do: "NX"
+  defp tab_label(:j), do: "J"
+  defp tab_label(_), do: "ELIXIR"
 end
