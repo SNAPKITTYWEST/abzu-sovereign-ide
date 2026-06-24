@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ABZU Sovereign IDE — Phoenix LiveView Browser IDE</title>
+<meta name="description" content="Sovereign BEAM IDE built with Phoenix LiveView. BOB AI integration, WORM chain, Elixir. Mind the Product hackathon finalist."/>
+<meta name="theme-color" content="#bf5af2"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#04040a;--bg1:#08100a;--bg2:#0b1410;--border:#1a2a1e;--text:#e0e0f0;--dim:#555;--green:#00ff88;--purple:#bf5af2;--blue:#0a84ff;--mono:'SF Mono',Monaco,Consolas,monospace}
+html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var(--mono)}
+a{color:inherit;text-decoration:none}
+.hero{max-width:920px;margin:0 auto;padding:80px 24px 60px;text-align:center}
+.mark{display:inline-flex;align-items:center;gap:8px;font-size:9px;letter-spacing:3px;color:var(--green);border:1px solid #1a2a1e;border-radius:4px;padding:4px 12px;margin-bottom:32px}
+h1{font-size:clamp(28px,5vw,52px);font-weight:700;line-height:1.15;margin-bottom:18px}
+h1 span{color:var(--green)}
+.sub{font-size:15px;color:#666;line-height:1.7;max-width:560px;margin:0 auto 40px}
+.ctas{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn-primary{padding:12px 28px;background:var(--green);color:#000;border-radius:8px;font-weight:700;font-size:13px;font-family:var(--mono)}
+.btn-ghost{padding:12px 28px;border:1px solid var(--border);color:#888;border-radius:8px;font-size:13px;font-family:var(--mono)}
+.ide-mock{max-width:760px;margin:0 auto 72px;background:var(--bg1);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.ide-bar{background:var(--bg2);border-bottom:1px solid var(--border);padding:8px 14px;display:flex;align-items:center;gap:8px}
+.dot{width:8px;height:8px;border-radius:50%}
+.ide-title{font-size:9px;color:#555;margin-left:6px;letter-spacing:1px}
+.tab{font-size:9px;padding:3px 10px;border-radius:3px;cursor:pointer}
+.tab.active{background:#00ff8820;color:var(--green);border:1px solid #00ff8830}
+.tab:not(.active){color:var(--dim)}
+.ide-body{display:grid;grid-template-columns:1fr 220px;min-height:220px}
+.editor{padding:14px 16px;border-right:1px solid var(--border);font-size:10px;line-height:1.9}
+.kw{color:var(--purple)}
+.fn{color:var(--green)}
+.str{color:#ffd60a}
+.comment{color:#555}
+.mod{color:var(--blue)}
+.panel{padding:12px}
+.panel-label{font-size:8px;letter-spacing:2px;color:var(--dim);margin-bottom:8px}
+.agent-chip{font-size:9px;padding:3px 8px;border-radius:4px;background:#00ff8810;color:#00ff88;border:1px solid #00ff8820;margin-bottom:4px;display:inline-block}
+.worm-line{font-size:9px;color:var(--dim);padding:3px 0;border-bottom:1px solid var(--border)}
+.seal{color:var(--green)}
+.status-bar{border-top:1px solid var(--border);padding:6px 14px;display:flex;gap:16px;font-size:9px;color:var(--dim)}
+.features{max-width:920px;margin:0 auto;padding:0 24px 80px}
+.section-label{font-size:9px;letter-spacing:3px;color:var(--dim);margin-bottom:24px;text-align:center}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.card{background:var(--bg1);border:1px solid var(--border);border-radius:10px;padding:18px 20px}
+.card-icon{font-size:18px;margin-bottom:10px}
+.card-title{font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px}
+.card-desc{font-size:11px;color:#555;line-height:1.6}
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:10px;padding:4px 12px;border-radius:4px;background:#00ff8810;color:#00ff88;border:1px solid #00ff8820;margin:0 auto 60px;display:block;width:fit-content;text-align:center}
+footer{border-top:1px solid var(--border);padding:20px 24px;text-align:center;font-size:10px;color:var(--dim)}
+footer a{color:var(--green)}
+</style>
+</head>
+<body>
+<div class="hero">
+  <div class="mark">SNAPKITTY SOVEREIGN OS - BUILD LANE - BEAM</div>
+  <h1>Phoenix LiveView.<br><span>Sovereign browser IDE.</span></h1>
+  <p class="sub">ABZU Sovereign IDE runs entirely in the browser over a Phoenix LiveView WebSocket. BOB AI provides inline completions, the WORM chain seals every session, and the Elixir BEAM runtime never sleeps.</p>
+  <div class="ctas">
+    <a class="btn-primary" href="https://github.com/SNAPKITTYWEST/abzu-sovereign-ide" target="_blank">View Source</a>
+    <a class="btn-ghost" href="https://collectivekitty.com/apps" target="_blank">App Directory</a>
+  </div>
+</div>
+<div class="ide-mock">
+  <div class="ide-bar">
+    <div class="dot" style="background:#ff453a"></div>
+    <div class="dot" style="background:#ffd60a"></div>
+    <div class="dot" style="background:#00ff88"></div>
+    <span class="ide-title">ABZU IDE</span>
+    <div style="margin-left:12px;display:flex;gap:4px">
+      <span class="tab active">main.ex</span>
+      <span class="tab">trust.ex</span>
+      <span class="tab">worm.ex</span>
+    </div>
+  </div>
+  <div class="ide-body">
+    <div class="editor">
+<pre><span class="kw">defmodule</span> <span class="mod">ABZU.Sovereign</span> <span class="kw">do</span>
+  <span class="kw">use</span> <span class="mod">Phoenix.LiveView</span>
+
+  <span class="comment"># BOB AI inline completion</span>
+  <span class="kw">def</span> <span class="fn">handle_event</span>(<span class="str">"complete"</span>, params, socket) <span class="kw">do</span>
+    suggestion = <span class="mod">BOB.Orchestrator</span>.complete(params)
+    {:noreply, assign(socket, <span class="str">:suggestion</span>, suggestion)}
+  <span class="kw">end</span>
+
+  <span class="kw">def</span> <span class="fn">seal_session</span>(session_id) <span class="kw">do</span>
+    <span class="mod">WORM.Chain</span>.append(%{
+      type: <span class="str">:session_seal</span>,
+      id:   session_id,
+      ts:   <span class="mod">DateTime</span>.utc_now()
+    })
+  <span class="kw">end</span>
+<span class="kw">end</span></pre>
+    </div>
+    <div class="panel">
+      <div class="panel-label">AGENTS ONLINE</div>
+      <div><span class="agent-chip">BOB</span></div>
+      <div><span class="agent-chip">NOVA</span></div>
+      <div><span class="agent-chip">BIFROST</span></div>
+      <div class="panel-label" style="margin-top:12px">WORM TAIL</div>
+      <div class="worm-line"><span class="seal">0xa3...</span> session_start</div>
+      <div class="worm-line"><span class="seal">0x7f...</span> edit_buffer</div>
+      <div class="worm-line"><span class="seal">0xe1...</span> ai_complete</div>
+    </div>
+  </div>
+  <div class="status-bar">
+    <span>Elixir 1.16</span>
+    <span>Phoenix 1.7</span>
+    <span>BEAM runtime</span>
+    <span style="margin-left:auto;color:#00ff88">WORM active</span>
+  </div>
+</div>
+<div class="badge">Mind the Product Hackathon - Finalist</div>
+<div class="features">
+  <p class="section-label">TECH STACK</p>
+  <div class="grid">
+    <div class="card"><div class="card-icon">phoenix</div><div class="card-title">Phoenix LiveView</div><div class="card-desc">Real-time server-rendered UI over WebSocket. Zero JavaScript framework — Elixir handles all state on the BEAM.</div></div>
+    <div class="card"><div class="card-icon">bob</div><div class="card-title">BOB AI</div><div class="card-desc">BOB Orchestrator provides inline completions, code analysis, and sovereign context injection directly in the editor.</div></div>
+    <div class="card"><div class="card-icon">worm</div><div class="card-title">WORM Chain</div><div class="card-desc">Every edit, completion, and session event is WORM-sealed. Replay the entire session with cryptographic integrity.</div></div>
+    <div class="card"><div class="card-icon">beam</div><div class="card-title">Elixir BEAM</div><div class="card-desc">Fault-tolerant distributed runtime. Agents run as supervised OTP processes. No single point of failure.</div></div>
+  </div>
+</div>
+<footer>
+  Built by <a href="https://collectivekitty.com" target="_blank">SnapKitty Sovereign OS</a>
+  <a href="https://github.com/SNAPKITTYWEST/abzu-sovereign-ide" target="_blank">GitHub</a>
+  Sovereign License
+</footer>
+</body>
+</html>
