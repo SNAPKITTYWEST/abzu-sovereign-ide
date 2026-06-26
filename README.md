@@ -16,3 +16,5 @@ Ready to run in production? Please [check our deployment guides](https://phoenix
 * Docs: https://phoenix.hexdocs.pm
 * Forum: https://elixirforum.com/c/phoenix-forum
 * Source: https://github.com/phoenixframework/phoenix
+
+![](https://sovereign-analytics.snapkittywest.workers.dev/canary/abzu-sovereign-ide)
