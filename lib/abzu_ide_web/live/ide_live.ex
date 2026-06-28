@@ -52,6 +52,10 @@ defmodule AbzuIdeWeb.IdeLive do
   """
 
   def mount(_params, _session, socket) do
+    if connected?(socket) do
+      Phoenix.PubSub.subscribe(AbzuIde.PubSub, "sovereign:gitlab")
+    end
+
     {:ok,
      socket
      |> assign(:elixir_code, @default_elixir)
@@ -66,7 +70,8 @@ defmodule AbzuIdeWeb.IdeLive do
      |> assign(:worm_entries, [])
      |> assign(:registry_packages, SovereignRegistry.sovereign_packages())
      |> assign(:run_seal, nil)
-     |> assign(:j_installed, JRunner.installed?())}
+     |> assign(:j_installed, JRunner.installed?())
+     |> assign(:gitlab_events, [])}
   end
 
   def handle_event("code_change", %{"code" => code}, socket) do
@@ -180,6 +185,16 @@ defmodule AbzuIdeWeb.IdeLive do
      |> push_event("abzu:bob_complete", %{seal: seal.id, catcode: verdict.verdict})}
   end
 
+  def handle_info({:pipeline_event, event}, socket) do
+    events = [event | Enum.take(socket.assigns.gitlab_events, 19)]
+    seal   = WormChain.seal(:gitlab_event, %{pipeline: event.pipeline, worm: event.worm_hash})
+    {:noreply,
+     socket
+     |> assign(:gitlab_events, events)
+     |> assign(:worm_entries, WormChain.entries())
+     |> push_event("abzu:gitlab_event", %{seal: seal.id, pipeline: event.pipeline})}
+  end
+
   def handle_info({:DOWN, _ref, :process, _pid, _reason}, socket) do
     {:noreply, assign(socket, :bob_loading, false)}
   end
@@ -251,6 +266,12 @@ defmodule AbzuIdeWeb.IdeLive do
               J <%= unless @j_installed, do: "·offline" %>
             </button>
             <button class={"tab #{if @active_tab == :registry, do: "active"}"} phx-click="set_tab" phx-value-tab="registry">PACKAGES</button>
+            <button class={"tab #{if @active_tab == :gitlab, do: "active"} gitlab-tab"} phx-click="set_tab" phx-value-tab="gitlab">
+              ⬡ GITLAB
+              <%= if length(@gitlab_events) > 0 do %>
+                <span class="tab-badge"><%= length(@gitlab_events) %></span>
+              <% end %>
+            </button>
           </div>
 
           <%= if @active_tab in [:elixir, :nx, :j] do %>
@@ -294,6 +315,58 @@ defmodule AbzuIdeWeb.IdeLive do
                 <div class="output-err">
                   <span class="output-label">ERROR</span>
                   <pre><%= @error %></pre>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+
+          <%= if @active_tab == :gitlab do %>
+            <div class="gitlab-panel">
+              <div class="gitlab-header">
+                <span class="gitlab-logo">⬡</span>
+                SNAPKITTY GITLAB — LIVE PIPELINE FEED
+                <span class="gitlab-count"><%= length(@gitlab_events) %> events</span>
+              </div>
+              <%= if Enum.empty?(@gitlab_events) do %>
+                <div class="gitlab-empty">
+                  <p>Waiting for GitLab events...</p>
+                  <p class="gitlab-hint">Connect snapkitty-gitlab connector at <code>:4700</code> with <code>ABZU_URL=http://localhost:4000</code></p>
+                  <p class="gitlab-hint">Test: <code>curl -X POST localhost:4000/api/pipeline_event -H "X-Sovereign-Sig: test" -H "X-Sovereign-Ts: $(date +%s)000" -d '{"worm_hash":"test","payload":{"pipeline":"mr-review","event":"Merge Request Hook","context":{"repo":"my-repo","branch":"main"},"result":{"final_out":"APPROVE","steps":[]}}}'</code></p>
+                </div>
+              <% end %>
+              <%= for event <- @gitlab_events do %>
+                <div class="gitlab-event">
+                  <div class="gitlab-event-header">
+                    <span class="pipeline-badge"><%= event.pipeline %></span>
+                    <span class="gitlab-event-type"><%= event.gitlab_event %></span>
+                    <span class="gitlab-worm">WORM: <%= String.slice(event.worm_hash, 0, 12) %></span>
+                  </div>
+                  <%= if event.context[:repo] || event.context["repo"] do %>
+                    <div class="gitlab-context">
+                      <span class="ctx-repo"><%= event.context[:repo] || event.context["repo"] %></span>
+                      <span class="ctx-branch">@ <%= event.context[:branch] || event.context["branch"] || "unknown" %></span>
+                    </div>
+                  <% end %>
+                  <div class="frankenstein-steps">
+                    <%= if event.brain[:output] != "" do %>
+                      <div class="fk-step brain">
+                        <div class="fk-label">🧠 BRAIN <span class="fk-ms"><%= event.brain[:ms] %>ms</span></div>
+                        <pre class="fk-output"><%= String.slice(event.brain[:output] || "", 0, 500) %></pre>
+                      </div>
+                    <% end %>
+                    <%= if event.legs[:output] != "" do %>
+                      <div class="fk-step legs">
+                        <div class="fk-label">🦵 LEGS <span class="fk-ms"><%= event.legs[:ms] %>ms</span></div>
+                        <pre class="fk-output"><%= String.slice(event.legs[:output] || "", 0, 400) %></pre>
+                      </div>
+                    <% end %>
+                    <%= if event.review != "" do %>
+                      <div class="fk-step review">
+                        <div class="fk-label">🔍 REVIEW</div>
+                        <pre class="fk-output"><%= String.slice(event.review, 0, 600) %></pre>
+                      </div>
+                    <% end %>
+                  </div>
                 </div>
               <% end %>
             </div>

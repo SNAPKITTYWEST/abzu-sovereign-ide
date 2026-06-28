@@ -129,3 +129,33 @@ kbd { background: var(--bg3); border: 1px solid var(--border); padding: 1px 6px;
 .bob-chain-note { font-size: 9px; color: var(--grey); letter-spacing: 1px; }
 .bob-footer { padding: 8px 14px; border-top: 1px solid var(--border); flex-shrink: 0; }
 .bob-backend { font-size: 9px; letter-spacing: 1px; color: var(--grey-lt); }
+
+/* ── GITLAB PIPELINE PANEL ── */
+.gitlab-tab { position: relative; }
+.tab-badge { position: absolute; top: 2px; right: 2px; background: var(--orange); color: #000; font-size: 8px; padding: 1px 4px; border-radius: 8px; font-weight: 700; }
+.gitlab-panel { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0; }
+.gitlab-header { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: var(--bg3); border-bottom: 1px solid var(--border); font-size: 10px; letter-spacing: 2px; color: var(--orange); font-weight: 700; flex-shrink: 0; }
+.gitlab-logo { font-size: 16px; }
+.gitlab-count { margin-left: auto; color: var(--grey-lt); font-size: 9px; font-weight: 400; }
+.gitlab-empty { padding: 32px 24px; color: var(--grey-lt); font-size: 11px; line-height: 1.8; }
+.gitlab-hint { font-size: 10px; color: var(--grey); margin-top: 6px; }
+.gitlab-hint code { background: var(--bg3); padding: 1px 5px; color: var(--cyan); font-family: var(--font-mono); }
+.gitlab-event { border-bottom: 1px solid var(--border); padding: 12px 16px; }
+.gitlab-event-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.pipeline-badge { background: var(--orange); color: #000; font-size: 9px; font-weight: 700; padding: 2px 6px; letter-spacing: 1px; }
+.gitlab-event-type { font-size: 9px; color: var(--grey-lt); letter-spacing: 1px; }
+.gitlab-worm { margin-left: auto; font-size: 9px; color: var(--green); font-family: var(--font-mono); }
+.gitlab-context { display: flex; gap: 8px; margin-bottom: 10px; font-size: 10px; }
+.ctx-repo { color: var(--cyan); font-family: var(--font-mono); }
+.ctx-branch { color: var(--grey-lt); }
+.frankenstein-steps { display: flex; flex-direction: column; gap: 8px; }
+.fk-step { border-left: 2px solid var(--border); padding-left: 10px; }
+.fk-step.brain  { border-color: var(--purple); }
+.fk-step.legs   { border-color: var(--cyan); }
+.fk-step.review { border-color: var(--green); }
+.fk-label { font-size: 9px; letter-spacing: 2px; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+.fk-step.brain  .fk-label { color: var(--purple); }
+.fk-step.legs   .fk-label { color: var(--cyan); }
+.fk-step.review .fk-label { color: var(--green); }
+.fk-ms { color: var(--grey-lt); font-size: 8px; }
+.fk-output { font-size: 10px; color: var(--white); white-space: pre-wrap; line-height: 1.5; max-height: 200px; overflow-y: auto; background: var(--bg3); padding: 8px; }

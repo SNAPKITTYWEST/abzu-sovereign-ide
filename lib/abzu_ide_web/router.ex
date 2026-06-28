@@ -20,10 +20,11 @@ defmodule AbzuIdeWeb.Router do
     live "/", IdeLive, :index
   end
 
-  # Other scopes may use custom stacks.
-  # scope "/api", AbzuIdeWeb do
-  #   pipe_through :api
-  # end
+  scope "/api", AbzuIdeWeb do
+    pipe_through :api
+
+    post "/pipeline_event", PipelineEventController, :create
+  end
 
   # Enable Swoosh mailbox preview in development
   if Application.compile_env(:abzu_ide, :dev_routes) do
